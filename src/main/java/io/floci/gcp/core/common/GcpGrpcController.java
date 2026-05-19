@@ -1,0 +1,35 @@
+package io.floci.gcp.core.common;
+
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import org.jboss.logging.Logger;
+
+/**
+ * Base class for gRPC service implementations. Provides project-ID extraction
+ * from gRPC metadata and uniform exception → {@link StatusRuntimeException} mapping.
+ *
+ * <p>Subclasses call {@link #error(StreamObserver, Throwable)} in catch blocks
+ * instead of constructing StatusRuntimeException manually.
+ */
+public abstract class GcpGrpcController {
+
+    private static final Logger LOG = Logger.getLogger(GcpGrpcController.class);
+
+    protected <T> void error(StreamObserver<T> observer, Throwable t) {
+        observer.onError(toStatusException(t));
+    }
+
+    protected StatusRuntimeException toStatusException(Throwable t) {
+        if (t instanceof GcpException ex) {
+            return ex.getGrpcCode().toStatus()
+                    .withDescription(ex.getMessage())
+                    .asRuntimeException();
+        }
+        if (t instanceof StatusRuntimeException sre) {
+            return sre;
+        }
+        LOG.errorv(t, "Unexpected error in gRPC handler");
+        return Status.INTERNAL.withDescription("Internal error").asRuntimeException();
+    }
+}

@@ -1,0 +1,12 @@
+quarkus:
+  log:
+    level: WARN
+    category:
+      "io.floci.gcp":
+        level: INFO
+
+floci-gcp:
+  port: 4578
+  default-project-id: test-project
+  storage:
+    mode: memory

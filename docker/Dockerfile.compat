@@ -1,0 +1,23 @@
+ARG VERSION=latest
+FROM floci/floci-gcp:${VERSION}
+
+LABEL org.opencontainers.image.title="floci-gcp (compat)" \
+      org.opencontainers.image.description="floci-gcp compatibility image with Python GCP SDK pre-installed" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.vendor="Floci"
+
+USER root
+RUN microdnf install -y --nodocs python3 python3-pip \
+    && pip3 install --no-cache-dir \
+         google-cloud-pubsub \
+         google-cloud-storage \
+         google-cloud-firestore \
+         google-cloud-datastore \
+         google-cloud-secretmanager \
+    && microdnf clean all \
+    && rm -rf /root/.cache/pip
+
+COPY bin/gcplocal /usr/local/bin/gcplocal
+RUN chmod +x /usr/local/bin/gcplocal
+
+USER 1001

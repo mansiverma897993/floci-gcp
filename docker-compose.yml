@@ -1,0 +1,21 @@
+services:
+  floci-gcp:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    tty: true
+    ports:
+      - "4578:4578"
+    volumes:
+      - ./data:/app/data
+    environment:
+      FLOCI_GCP_HOSTNAME: floci-gcp
+      FLOCI_GCP_BASE_URL: http://floci-gcp:4578
+    networks:
+      floci_gcp_default:
+        aliases:
+          - localhost.floci.io
+
+networks:
+  floci_gcp_default:
+    name: floci_gcp_default

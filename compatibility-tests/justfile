@@ -1,0 +1,30 @@
+# GCP Compatibility Tests - Task Runner Configuration
+set export
+set dotenv-load
+
+FLOCI_GCP_ENDPOINT := env('FLOCI_GCP_ENDPOINT', 'http://localhost:4578')
+FLOCI_GCP_PROJECT := env('FLOCI_GCP_PROJECT', 'test-project')
+PUBSUB_EMULATOR_HOST := env('PUBSUB_EMULATOR_HOST', 'localhost:4578')
+FIRESTORE_EMULATOR_HOST := env('FIRESTORE_EMULATOR_HOST', 'localhost:4578')
+DATASTORE_EMULATOR_HOST := env('DATASTORE_EMULATOR_HOST', 'localhost:4578')
+STORAGE_EMULATOR_HOST := env('STORAGE_EMULATOR_HOST', 'http://localhost:4578')
+
+default:
+    @just --list
+
+test-all:
+    just test-java
+
+[working-directory: 'sdk-test-java']
+test-java:
+    mvn test -q
+
+[working-directory: 'sdk-test-java']
+setup-java:
+    mvn dependency:resolve -q
+
+setup: setup-java
+
+[working-directory: 'sdk-test-java']
+clean:
+    mvn clean -q

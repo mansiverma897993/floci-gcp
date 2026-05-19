@@ -1,0 +1,56 @@
+quarkus:
+  log:
+    console:
+      format: "%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3.}] %s%e%n"
+
+  http:
+    port: ${floci-gcp.port}
+    host: 0.0.0.0
+    http2: true
+    limits:
+      max-body-size: ${floci-gcp.max-request-size}M
+
+  shutdown:
+    delay-enabled: true
+
+  native:
+    additional-build-args:
+      - --report-unsupported-elements-at-runtime
+      - --allow-incomplete-classpath
+      - --enable-url-protocols=http,https
+
+floci-gcp:
+  port: 4578
+  max-request-size: 512
+  base-url: "http://localhost:4578"
+  default-project-id: floci-local
+  storage:
+    mode: memory
+    persistent-path: ./data
+    host-persistent-path: ./data
+    prune-volumes-on-delete: false
+    wal:
+      compaction-interval-ms: 30000
+  services:
+    gcs:
+      enabled: true
+    pubsub:
+      enabled: true
+    firestore:
+      enabled: true
+    datastore:
+      enabled: true
+    iam:
+      enabled: true
+    secretmanager:
+      enabled: true
+  dns:
+    extra-suffixes:
+  docker:
+    log-max-size: "10m"
+    log-max-file: "3"
+    docker-host: "unix:///var/run/docker.sock"
+  init-hooks:
+    shell-executable: /bin/sh
+    shutdown-grace-period-seconds: 2
+    timeout-seconds: 30
