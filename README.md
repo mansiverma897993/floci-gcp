@@ -118,7 +118,7 @@ floci-gcp supports flexible storage modes. Configure globally via `FLOCI_GCP_STO
 | Mode | Behavior | Best for | Durability |
 |:---:|---|---|:---:|
 | **`memory`** | **(Default)** Entirely in-RAM. Lost on container stop. | Speed, CI pipelines | ❌ None |
-| **`persistent`** | Loaded at startup, flushed on graceful shutdown. | Simple local dev | ⚠️ Medium |
+| **`persistent`** | Every write goes directly to disk synchronously. | Durable local dev | ✅ Good |
 | **`hybrid`** | In-memory with async flush every 5 seconds. | Balance of speed and safety | ✅ Good |
 | **`wal`** | Write-Ahead Log. Every mutation written to disk immediately. | Maximum durability | 💎 Highest |
 
