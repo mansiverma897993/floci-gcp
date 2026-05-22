@@ -127,6 +127,18 @@ public class StoredValue {
         }
     }
 
+    public boolean matchesEqual(StoredValue other) {
+        if (other == null || !java.util.Objects.equals(type, other.type)) return false;
+        return switch (type) {
+            case "boolean" -> java.util.Objects.equals(booleanValue, other.booleanValue);
+            case "integer" -> java.util.Objects.equals(integerValue, other.integerValue);
+            case "double" -> java.util.Objects.equals(doubleValue, other.doubleValue);
+            case "string", "reference", "timestamp", "bytes" -> java.util.Objects.equals(stringValue, other.stringValue);
+            case "null" -> true;
+            default -> false;
+        };
+    }
+
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 

@@ -23,11 +23,13 @@ import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.UUID;
 
 @ApplicationScoped
@@ -149,6 +151,51 @@ public class FirestoreService {
             ts.setType("timestamp");
             ts.setStringValue(now);
             fields.put(path, ts);
+        } else if (transform.hasIncrement()) {
+            Value inc = transform.getIncrement();
+            StoredValue current = fields.get(path);
+            if (inc.getValueTypeCase() == Value.ValueTypeCase.INTEGER_VALUE) {
+                long base = (current != null && "integer".equals(current.getType()) && current.getIntegerValue() != null)
+                        ? current.getIntegerValue() : 0L;
+                StoredValue result = new StoredValue();
+                result.setType("integer");
+                result.setIntegerValue(base + inc.getIntegerValue());
+                fields.put(path, result);
+            } else if (inc.getValueTypeCase() == Value.ValueTypeCase.DOUBLE_VALUE) {
+                double base = (current != null && current.getDoubleValue() != null)
+                        ? current.getDoubleValue() : 0.0;
+                StoredValue result = new StoredValue();
+                result.setType("double");
+                result.setDoubleValue(base + inc.getDoubleValue());
+                fields.put(path, result);
+            }
+        } else if (transform.hasAppendMissingElements()) {
+            StoredValue arr = fields.get(path);
+            List<StoredValue> existing = (arr != null && "array".equals(arr.getType()) && arr.getArrayValue() != null)
+                    ? new ArrayList<>(arr.getArrayValue()) : new ArrayList<>();
+            for (Value v : transform.getAppendMissingElements().getValuesList()) {
+                StoredValue sv = StoredValue.fromProto(v);
+                boolean found = existing.stream().anyMatch(e -> e.matchesEqual(v));
+                if (!found) {
+                    existing.add(sv);
+                }
+            }
+            StoredValue result = new StoredValue();
+            result.setType("array");
+            result.setArrayValue(existing);
+            fields.put(path, result);
+        } else if (transform.hasRemoveAllFromArray()) {
+            StoredValue arr = fields.get(path);
+            if (arr != null && "array".equals(arr.getType()) && arr.getArrayValue() != null) {
+                List<StoredValue> filtered = arr.getArrayValue().stream()
+                        .filter(e -> transform.getRemoveAllFromArray().getValuesList().stream()
+                                .noneMatch(e::matchesEqual))
+                        .toList();
+                StoredValue result = new StoredValue();
+                result.setType("array");
+                result.setArrayValue(new ArrayList<>(filtered));
+                fields.put(path, result);
+            }
         }
     }
 
@@ -187,6 +234,24 @@ public class FirestoreService {
         return docs;
     }
 
+    public List<String> listCollectionIds(String parent) {
+        LOG.debugf("listCollectionIds parent=%s", parent);
+        String prefix = parent + "/";
+        TreeSet<String> ids = new TreeSet<>();
+        documentStore.scan(k -> k.startsWith(prefix)).forEach(doc -> {
+            String relative = doc.getName().substring(prefix.length());
+            int slash = relative.indexOf('/');
+            if (slash > 0) {
+                ids.add(relative.substring(0, slash));
+            }
+        });
+        return new ArrayList<>(ids);
+    }
+
+    public long countDocuments(String parent, StructuredQuery query) {
+        return runQuery(parent, query).size();
+    }
+
     // ── Transactions ───────────────────────────────────────────────────────────
 
     public byte[] beginTransaction() {
@@ -221,7 +286,61 @@ public class FirestoreService {
         return switch (ff.getOp()) {
             case EQUAL -> stored != null && stored.matchesEqual(filterValue);
             case NOT_EQUAL -> stored == null || !stored.matchesEqual(filterValue);
-            default -> true; // LT, LTE, GT, GTE, IN, ARRAY_CONTAINS, etc. — stub as passing for Tier 1
+            case LESS_THAN -> stored != null && compareValues(stored, filterValue) < 0;
+            case LESS_THAN_OR_EQUAL -> stored != null && compareValues(stored, filterValue) <= 0;
+            case GREATER_THAN -> stored != null && compareValues(stored, filterValue) > 0;
+            case GREATER_THAN_OR_EQUAL -> stored != null && compareValues(stored, filterValue) >= 0;
+            case ARRAY_CONTAINS -> stored != null && "array".equals(stored.getType())
+                    && stored.getArrayValue() != null
+                    && stored.getArrayValue().stream().anyMatch(sv -> sv.matchesEqual(filterValue));
+            case IN -> filterValue.hasArrayValue()
+                    && filterValue.getArrayValue().getValuesList().stream()
+                        .anyMatch(v -> stored != null && stored.matchesEqual(v));
+            case NOT_IN -> stored == null || (filterValue.hasArrayValue()
+                    && filterValue.getArrayValue().getValuesList().stream()
+                        .noneMatch(v -> stored.matchesEqual(v)));
+            case ARRAY_CONTAINS_ANY -> stored != null && "array".equals(stored.getType())
+                    && stored.getArrayValue() != null && filterValue.hasArrayValue()
+                    && filterValue.getArrayValue().getValuesList().stream()
+                        .anyMatch(fv -> stored.getArrayValue().stream().anyMatch(sv -> sv.matchesEqual(fv)));
+            default -> true;
+        };
+    }
+
+    private int compareValues(StoredValue stored, Value proto) {
+        return switch (proto.getValueTypeCase()) {
+            case INTEGER_VALUE -> {
+                if ("integer".equals(stored.getType()) && stored.getIntegerValue() != null)
+                    yield Long.compare(stored.getIntegerValue(), proto.getIntegerValue());
+                if ("double".equals(stored.getType()) && stored.getDoubleValue() != null)
+                    yield Double.compare(stored.getDoubleValue(), (double) proto.getIntegerValue());
+                yield 0;
+            }
+            case DOUBLE_VALUE -> {
+                if ("double".equals(stored.getType()) && stored.getDoubleValue() != null)
+                    yield Double.compare(stored.getDoubleValue(), proto.getDoubleValue());
+                if ("integer".equals(stored.getType()) && stored.getIntegerValue() != null)
+                    yield Double.compare((double) stored.getIntegerValue(), proto.getDoubleValue());
+                yield 0;
+            }
+            case STRING_VALUE -> {
+                if ("string".equals(stored.getType()) && stored.getStringValue() != null)
+                    yield stored.getStringValue().compareTo(proto.getStringValue());
+                yield 0;
+            }
+            case TIMESTAMP_VALUE -> {
+                if ("timestamp".equals(stored.getType()) && stored.getStringValue() != null) {
+                    try {
+                        Instant a = Instant.parse(stored.getStringValue());
+                        Instant b = Instant.ofEpochSecond(
+                                proto.getTimestampValue().getSeconds(),
+                                proto.getTimestampValue().getNanos());
+                        yield a.compareTo(b);
+                    } catch (Exception ignored) {}
+                }
+                yield 0;
+            }
+            default -> 0;
         };
     }
 

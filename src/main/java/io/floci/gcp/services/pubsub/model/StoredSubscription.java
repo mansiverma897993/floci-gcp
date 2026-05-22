@@ -10,6 +10,12 @@ public class StoredSubscription {
     private String name;
     private String topic;
     private int ackDeadlineSeconds = 10;
+    private String filter;
+    private String pushEndpoint;
+    private boolean retainAckedMessages;
+    private String messageRetentionDuration;
+    private String deadLetterTopic;
+    private int maxDeliveryAttempts;
 
     public StoredSubscription() {}
 
@@ -27,4 +33,22 @@ public class StoredSubscription {
 
     public int getAckDeadlineSeconds() { return ackDeadlineSeconds; }
     public void setAckDeadlineSeconds(int ackDeadlineSeconds) { this.ackDeadlineSeconds = ackDeadlineSeconds; }
+
+    public String getFilter() { return filter; }
+    public void setFilter(String filter) { this.filter = filter; }
+
+    public String getPushEndpoint() { return pushEndpoint; }
+    public void setPushEndpoint(String pushEndpoint) { this.pushEndpoint = pushEndpoint; }
+
+    public boolean isRetainAckedMessages() { return retainAckedMessages; }
+    public void setRetainAckedMessages(boolean retainAckedMessages) { this.retainAckedMessages = retainAckedMessages; }
+
+    public String getMessageRetentionDuration() { return messageRetentionDuration; }
+    public void setMessageRetentionDuration(String d) { this.messageRetentionDuration = d; }
+
+    public String getDeadLetterTopic() { return deadLetterTopic; }
+    public void setDeadLetterTopic(String deadLetterTopic) { this.deadLetterTopic = deadLetterTopic; }
+
+    public int getMaxDeliveryAttempts() { return maxDeliveryAttempts; }
+    public void setMaxDeliveryAttempts(int maxDeliveryAttempts) { this.maxDeliveryAttempts = maxDeliveryAttempts; }
 }

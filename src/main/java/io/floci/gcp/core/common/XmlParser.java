@@ -55,7 +55,8 @@ public final class XmlParser {
         }
     }
 
-    /** Reads a flat map of element local-name → text content from an XML string. */
+    /** Reads a flat map of element local-name → text content from an XML string.
+     *  Only direct children of the root element are captured; nested elements are ignored. */
     public static Map<String, String> parseFlat(String xml) {
         Map<String, String> result = new LinkedHashMap<>();
         if (xml == null || xml.isBlank()) {
@@ -63,14 +64,35 @@ public final class XmlParser {
         }
         try {
             XMLStreamReader r = FACTORY.createXMLStreamReader(new StringReader(xml));
+            int depth = 0;
+            String currentName = null;
+            StringBuilder currentText = null;
             while (r.hasNext()) {
                 int event = r.next();
                 if (event == XMLStreamConstants.START_ELEMENT) {
-                    String localName = r.getLocalName();
-                    String text = readLeafText(r);
-                    if (text != null && !text.isBlank()) {
-                        result.put(localName, text.strip());
+                    depth++;
+                    if (depth == 2) {
+                        currentName = r.getLocalName();
+                        currentText = new StringBuilder();
+                    } else if (depth > 2) {
+                        currentName = null;
+                        currentText = null;
                     }
+                } else if (event == XMLStreamConstants.END_ELEMENT) {
+                    if (depth == 2 && currentName != null && currentText != null) {
+                        String text = currentText.toString().strip();
+                        if (!text.isBlank()) {
+                            result.put(currentName, text);
+                        }
+                    }
+                    depth--;
+                    if (depth < 2) {
+                        currentName = null;
+                        currentText = null;
+                    }
+                } else if ((event == XMLStreamConstants.CHARACTERS || event == XMLStreamConstants.CDATA)
+                        && currentText != null) {
+                    currentText.append(r.getText());
                 }
             }
             r.close();

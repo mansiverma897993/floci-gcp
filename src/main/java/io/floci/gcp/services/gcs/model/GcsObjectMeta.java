@@ -3,6 +3,8 @@ package io.floci.gcp.services.gcs.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
+import java.util.Map;
+
 @RegisterForReflection
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GcsObjectMeta {
@@ -23,6 +25,10 @@ public class GcsObjectMeta {
     private String md5Hash;
     private String mediaLink;
     private String etag;
+    private String contentDisposition;
+    private String contentEncoding;
+    private String contentLanguage;
+    private Map<String, String> metadata;
 
     public String getKind() { return kind; }
     public void setKind(String kind) { this.kind = kind; }
@@ -71,4 +77,16 @@ public class GcsObjectMeta {
 
     public String getEtag() { return etag; }
     public void setEtag(String etag) { this.etag = etag; }
+
+    public String getContentDisposition() { return contentDisposition; }
+    public void setContentDisposition(String contentDisposition) { this.contentDisposition = contentDisposition; }
+
+    public String getContentEncoding() { return contentEncoding; }
+    public void setContentEncoding(String contentEncoding) { this.contentEncoding = contentEncoding; }
+
+    public String getContentLanguage() { return contentLanguage; }
+    public void setContentLanguage(String contentLanguage) { this.contentLanguage = contentLanguage; }
+
+    public Map<String, String> getMetadata() { return metadata; }
+    public void setMetadata(Map<String, String> metadata) { this.metadata = metadata; }
 }
