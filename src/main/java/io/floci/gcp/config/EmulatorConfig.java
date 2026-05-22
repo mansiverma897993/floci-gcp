@@ -83,6 +83,8 @@ public interface EmulatorConfig {
         IamServiceConfig iam();
 
         SecretManagerServiceConfig secretmanager();
+
+        KafkaServiceConfig kafka();
     }
 
     interface GcsServiceConfig {
@@ -113,6 +115,19 @@ public interface EmulatorConfig {
     interface SecretManagerServiceConfig {
         @WithDefault("true")
         boolean enabled();
+    }
+
+    interface KafkaServiceConfig {
+        @WithDefault("true")
+        boolean enabled();
+
+        @WithDefault("false")
+        boolean mock();
+
+        @WithDefault("redpandadata/redpanda:latest")
+        String defaultImage();
+
+        Optional<String> dockerNetwork();
     }
 
     interface DockerConfig {
