@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-03
+
+### Fixed
+
+- **gcs:** object compose now works — `POST /storage/v1/b/{bucket}/o/{object}/compose` was misrouted and returned `400 "Unsupported method override"`
+- **gcs:** write and metadata-update preconditions are enforced — `ifGenerationMatch`, `ifGenerationNotMatch`, `ifMetagenerationMatch`, `ifMetagenerationNotMatch` now return `412` when not met (`ifGenerationMatch=0` means "only if absent")
+- **gcs:** copy and rewrite preserve the source object's custom `metadata` on the destination
+- **gcs:** object listings with a `delimiter` include the top-level `prefixes[]` array
+- **gcs:** bucket creation accepts a JSON body regardless of the request `Content-Type` (no longer requires `application/json`)
+- **gcs:** `gcloud storage cp` uploads work — added the bucket `storageLayout` endpoint (was `405`) and accept single-quoted multipart boundaries sent by the gcloud CLI
+- **gcs:** object and bucket timestamps use microsecond precision, avoiding the gcloud CLI "truncating the datetime string" warning
+
 ## [0.2.0] - 2026-06-01
 
 ### Added
@@ -58,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/floci-io/floci-gcp/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/floci-io/floci-gcp/compare/0.2.1...HEAD
+[0.2.1]: https://github.com/floci-io/floci-gcp/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/floci-io/floci-gcp/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/floci-io/floci-gcp/releases/tag/0.1.0
